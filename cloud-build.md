@@ -1,5 +1,7 @@
 ## Google Cloud Build
 
+### Exercise 1: Enable APIs and create GKE cluster
+
 1. In Cloud Shell, enable the required APIs.
 
 ```
@@ -57,7 +59,8 @@ gcloud builds submit --tag="gcr.io/${PROJECT_ID}/hello-cloudbuild:${COMMIT_ID}" 
 
 ### Exercise 4: Create the continuous integration pipeline
 
-1. Using the code below. Create a file named cloudbuild.yaml
+1. Using the code below. Create a file named cloudbuild.yaml:
+
 https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild/blob/master/cloudbuild.yaml
 
 2. Open the Triggers page of Cloud Build and go to Triggers
@@ -86,3 +89,5 @@ git push google master
 8. Open the Cloud Build console.
 
 You should see a build running or having recently finished. You can click on the build to follow its execution and examine its logs.
+
+

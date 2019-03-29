@@ -1,8 +1,6 @@
 ## Google Cloud Build
 
-Open Cloud Shell to execute the commands listed
-
-In Cloud Shell, enable the required APIs.
+1. In Cloud Shell, enable the required APIs.
 
 ```
 gcloud services enable container.googleapis.com \
@@ -10,7 +8,31 @@ gcloud services enable container.googleapis.com \
     sourcerepo.googleapis.com \
     containeranalysis.googleapis.com
  ```  
-    
+
+1. In Cloud Shell, create a GKE cluster that you will use to deploy the sample application of this tutorial.
+
+ ``` 
+ gcloud container clusters create hello-cloudbuild \
+    --num-nodes 1 --zone us-central1-b
+ ``` 
+ 
+### Create the Git repositories in Cloud Source Repositories
+
+1. In Cloud Shell, create the two Git repositories.
+
+```
+gcloud source repos create hello-cloudbuild-app
+gcloud source repos create hello-cloudbuild-env
+````
+
+1. Clone the sample code from GitHub
+
+```
+cd ~
+git clone https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild \
+    hello-cloudbuild-app
+```
+
 ### Exercise 1: Manually access etcd 
 
 etcd, as most of the kubernetes system components, runs inside a static pod. This means we can use kubectl to access it.

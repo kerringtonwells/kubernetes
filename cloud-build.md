@@ -9,14 +9,14 @@ gcloud services enable container.googleapis.com \
     containeranalysis.googleapis.com
  ```  
 
-1. In Cloud Shell, create a GKE cluster that you will use to deploy the sample application of this tutorial.
+2. In Cloud Shell, create a GKE cluster that you will use to deploy the sample application of this tutorial.
 
  ``` 
  gcloud container clusters create hello-cloudbuild \
     --num-nodes 1 --zone us-central1-b
  ``` 
  
-### Create the Git repositories in Cloud Source Repositories
+### Exercise 2: Create the Git repositories in Cloud Source Repositories
 
 1. In Cloud Shell, create the two Git repositories.
 
@@ -25,7 +25,7 @@ gcloud source repos create hello-cloudbuild-app
 gcloud source repos create hello-cloudbuild-env
 ````
 
-1. Clone the sample code from GitHub
+2. Clone the sample code from GitHub
 
 ```
 cd ~
@@ -33,51 +33,56 @@ git clone https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild 
     hello-cloudbuild-app
 ```
 
-### Exercise 1: Manually access etcd 
+3. Configure Cloud Source Repositories as a remote.
 
-etcd, as most of the kubernetes system components, runs inside a static pod. This means we can use kubectl to access it.
+```
+cd ~/hello-cloudbuild-app
+PROJECT_ID=$(gcloud config get-value project)
+git remote add google \
+    "https://source.developers.google.com/p/${PROJECT_ID}/r/hello-cloudbuild-app"
+```
 
-1. Run the following command to list all system pods.
-    ```
-    kubectl --namespace kube-system get pods
-    ```
-    As you might see, there are two etcd pods in the list: `etcd-master` and `etcd-events`. 
-    
-    The database itself is hosted inside the `etcd-master` pod.
+### Exercise 3: Create a container image with Cloud Build
 
-1. Exec inside etcd pod.
-    ```
-    kubectl --namespace kube-system exec -it etcd-server-master-us-west1-c-ABCD sh
-    ```
+1. In Cloud Shell, create a Cloud Build build based on the latest commit with the following command.
 
-1. Now you can use `etcdctl` to access the etcd database. The `etcdctl ls` command can be used to navigate inside etcd.
-    ```
-    etcdctl ls 
-    etcdctl ls /registry
-    ```
-1. List all pods in kube-system namespace.
-    ```
-    etcdctl ls /registry/pods/kube-system
-    ```
+```
+cd ~/hello-cloudbuild-app
+COMMIT_ID="$(git rev-parse --short=7 HEAD)"
+gcloud builds submit --tag="gcr.io/${PROJECT_ID}/hello-cloudbuild:${COMMIT_ID}" .
+```
 
-1. Select some pod and get its manifest from etcd database.
-    ```
-    etcdctl get /registry/pods/kube-system/<pod-name>
-    ```
-    
-1. You can use `jq` or an online tool such as [jsonprettyprint](http://jsonprettyprint.com/) to make the manifest more readable.
-    ```
-    etcdctl get /registry/pods/kube-system/<pod-name>
-    ```
-
-    # Piping over to jq
-    ```
-    kubectl --namespace kube-system exec -it etcd-server-master-us-west1-c-ABCD -- etcdctl get /registry/pods/default/<mypod>|jq 
-    ```
-
-### Exercise 2: Backup etcd 
-
-1. Follow the instructions in the etcd documentation to create an etcd backup. [Reference link](https://coreos.com/etcd/docs/latest/v2/admin_guide.html#disaster-recovery) 
-1. Deploy etcd on a separate VM [link](https://docs.openstack.org/install-guide/environment-etcd-ubuntu.html), and apply the backup.
+2. After the build finishes, verify that your new container image is indeed available in Container Registry
 
 
+### Exercise 4: Create the continuous integration pipeline
+
+1. Using the code below. Create a file named cloudbuild.yaml
+https://github.com/GoogleCloudPlatform/gke-gitops-tutorial-cloudbuild/blob/master/cloudbuild.yaml
+
+2. Open the Triggers page of Cloud Build and go to Triggers
+
+3. Click Create trigger.
+
+4. Select "Cloud Source Repositories" as source and click Continue.
+
+5. Select the hello-cloudbuild-app repository and click Continue.
+
+6. In the "Triggers settings" screen, enter the following parameters:
+
+```
+Name: hello-cloudbuild
+Branch (regex): master
+Build configuration: cloudbuild.yaml
+Click Create trigger.
+```
+7. In Cloud Shell, push the application code to Cloud Source Repositories to trigger the CI pipeline in Cloud Build.
+
+```
+cd ~/hello-cloudbuild-app
+git push google master
+```
+
+8. Open the Cloud Build console.
+
+You should see a build running or having recently finished. You can click on the build to follow its execution and examine its logs.

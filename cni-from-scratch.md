@@ -91,5 +91,92 @@ You should see something like the following:
 This node has joined the cluster:
 * Certificate signing request was sent to apiserver and a response was received.
 * The Kubelet was informed of the new secure connection details.
-```
 Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+
+9. Configure kubectl to connect to the newly created cluster
+```
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+10. Check that kubectl get nodes works from the Master node
+```
+kubectl get nodes 
+NAME         STATUS     ROLES    AGE   VERSION
+k8s-master   NotReady   master   15m   v1.14.0
+k8s-worker   NotReady   <none>   12m   v1.14.0
+```
+
+### Configuring a CNI plug-in
+
+11. Check the subnets for both the Master and Worker
+```
+root@k8s-master:~# kubectl describe node k8s-master | grep PodCIDR
+PodCIDR:                     10.244.0.0/24
+root@k8s-master:~# kubectl describe node k8s-worker | grep PodCIDR
+PodCIDR:                     10.244.1.0/24
+```
+
+12. Create CNI plugin configuration on BOTH the Master and Worker vms
+```
+mkdir -p /etc/cni/net.d
+sudo vim /etc/cni/net.d/10-bash-cni-plugin.conf
+{
+        "cniVersion": "0.3.1",
+        "name": "mynet",
+        "type": "bash-cni",
+        "network": "10.244.0.0/16",  <--- replace this with the CIDR block you got the the output of step 11
+        "subnet": "<node-cidr-range>"
+}
+```
+Do this for both the Master and Worker vms
+
+13. Create a network bridge
+The network bridge is a special device that aggregates network packets from multiple network interfaces. 
+
+```
+root@k8s-master:/etc# sudo brctl addbr cni0
+root@k8s-master:/etc# sudo ip link set cni0 up
+root@k8s-master:/etc# sudo ip addr add 10.244.0.1/24 dev cni0
+
+root@k8s-worker:# sudo brctl addbr cni0
+root@k8s-worker:# sudo ip link set cni0 up
+root@k8s-worker:# sudo ip addr add 10.244.1.1/24 dev cni0
+
+root@k8s-worker:# ip route | grep cni0
+10.244.1.0/24 dev cni0  proto kernel  scope link  src 10.244.1.1 
+
+root@k8s-master:/etc# ip route | grep cni0
+10.244.0.0/24 dev cni0  proto kernel  scope link  src 10.244.0.1 
+```
+
+14. Create the cni plug-in 
+```
+On both the master and worker nodes add the following script 
+https://github.com/s-matyukevich/bash-cni-plugin/blob/master/01_gcp/bash-cni
+Add the contents of this script on the Master and the Worker
+vim /opt/cni/bin/bash-cni
+sudo chmod +x /opt/cni/bin/bash-cni
+```
+
+15. Testing the plugin we've just created
+After adding the bash-cni file you should will now see that the Master and Worker are both in the ready state
+```
+kubectl get nodes 
+NAME         STATUS   ROLES    AGE    VERSION
+k8s-master   Ready    master   153m   v1.14.0
+k8s-worker   Ready    <none>   149m   v1.14.0
+```
+We want to test cross-node container communication, so we need to deploy some pods on the master, as well as on the worker.
+
+Note:
+```
+By default, the scheduler will not put any pods on the master node, because it is “tainted.” But we want to test cross-node container communication, so we need to deploy some pods on the master, as well as on the worker. The taint can be removed using the following command.
+
+root@k8s-master:/etc# kubectl taint nodes k8s-master node-role.kubernetes.io/master-
+node/k8s-master untainted
+
+Now the scheduler will put pods on the master node.
+```

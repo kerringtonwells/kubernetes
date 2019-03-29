@@ -232,3 +232,13 @@ sudo iptables -t nat -A POSTROUTING -s 10.244.0.0/24 ! -o cni0 -j MASQUERADE
 Run the following on the worker
 sudo iptables -t nat -A POSTROUTING -s 10.244.1.0/24 ! -o cni0 -j MASQUERADE
 ```
+
+20. Communication between containers on different VMs
+```
+ gcloud compute routes create k8s-master --destination-range 10.244.0.0/24 --network k8s --next-hop-address mastervmip
+
+ gcloud compute routes create k8s-worker --destination-range 10.244.1.0/24 --network k8s --next-hop-address workervmip
+```
+
+See the following blog post for more information:
+https://www.altoros.com/blog/kubernetes-networking-writing-your-own-simple-cni-plug-in-with-bash/

@@ -74,6 +74,22 @@ apt-mark hold kubelet kubeadm kubectl
 ```
 
 7. On the master node start the cluster
+```
 sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+```
 
-8.
+8. Join the worker node to the master node you've just started. You will have goten the token and command to join. See my example below:
+
+```
+FROM THE WORKER NODE:
+kubeadm join 10.128.0.4:6443 --token fsjsrk.mb2013vdg8w6nvjv \
+    --discovery-token-ca-cert-hash sha256:330f082be3b755b4b26322e993cf3fc97ff2e3a01380c5c655321f23cec8e985
+```
+
+You should see something like the following:
+```
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+```
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.

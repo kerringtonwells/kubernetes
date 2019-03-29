@@ -1,13 +1,16 @@
-## etcd
+## Google Cloud Build
 
-etcd is a distributed key-value store that provides a reliable way to store data across a cluster of machines. 
+Open Cloud Shell to execute the commands listed
 
-etcd gracefully handles leader elections during network partitions and will tolerate machine failure, including the leader.
+In Cloud Shell, enable the required APIs.
 
-It’s open-source and available on [GitHub](https://github.com/coreos/etcd). 
-
-Kubernetes uses etcd to store all persistent information that it needs to operate (cluster state, current and desired state for all pods and deployments, secrets, config maps ...)
-
+```
+gcloud services enable container.googleapis.com \
+    cloudbuild.googleapis.com \
+    sourcerepo.googleapis.com \
+    containeranalysis.googleapis.com
+ ```  
+    
 ### Exercise 1: Manually access etcd 
 
 etcd, as most of the kubernetes system components, runs inside a static pod. This means we can use kubectl to access it.

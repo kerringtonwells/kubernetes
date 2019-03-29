@@ -187,5 +187,48 @@ Now the scheduler will put pods on the master node.
 From the master:
 kubectl apply -f https://raw.githubusercontent.com/s-matyukevich/bash-cni-plugin/master/01_gcp/test-deployment.yml
 
+Once the containers have started you should see something like the following output:
+kubectl describe pod | grep IP
+IP:                 10.244.0.3
+IP:                 10.244.1.1
+IP:                 10.244.0.2
+IP:                 10.244.1.0
+
 ```
 
+17. kubectl exec into the bash-master pod and run Ping test
+```
+kubectl exec -it bash-master bash
+
+Can ping itself
+root@bash-master:/# ping 10.244.0.3
+PING 10.244.0.3 (10.244.0.3) 56(84) bytes of data.
+64 bytes from 10.244.0.3: icmp_seq=1 ttl=64 time=0.027 ms
+64 bytes from 10.244.0.3: icmp_seq=2 ttl=64 time=0.066 ms
+
+Can’t ping a container on the same host
+root@bash-master:/# ping 10.244.0.2
+
+Can't ping a container on a different host
+root@bash-master:/# ping 10.244.1.1
+PING 10.244.1.1 (10.244.1.1) 56(84) bytes of data.
+
+```
+
+18. Fixing container-to-container communication
+
+```
+In order to fix the issue, we need to apply additional forwarding rules that will allow to freely forward traffic inside the whole pod CIDR range. You should execute the two commands below on both Master and Worker VMs. This should fix the issues with communication between containers located at the same host.
+
+sudo iptables -t filter -A FORWARD -s 10.244.0.0/16 -j ACCEPT
+sudo iptables -t filter -A FORWARD -d 10.244.0.0/16 -j ACCEPT
+```
+
+19. Fixing external access using NAT so that the router doesn't drop packets 
+
+```
+Run the following on the master
+sudo iptables -t nat -A POSTROUTING -s 10.244.0.0/24 ! -o cni0 -j MASQUERADE
+Run the following on the worker
+sudo iptables -t nat -A POSTROUTING -s 10.244.1.0/24 ! -o cni0 -j MASQUERADE
+```

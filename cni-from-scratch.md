@@ -127,8 +127,8 @@ sudo vim /etc/cni/net.d/10-bash-cni-plugin.conf
         "cniVersion": "0.3.1",
         "name": "mynet",
         "type": "bash-cni",
-        "network": "10.244.0.0/16",  <--- replace this with the CIDR block you got the the output of step 11
-        "subnet": "<node-cidr-range>"
+        "network": "10.244.0.0/16",  
+        "subnet": "<node-cidr-range>" <--- replace this with the CIDR block you got the the output of step 11
 }
 ```
 Do this for both the Master and Worker vms
@@ -175,8 +175,17 @@ Note:
 ```
 By default, the scheduler will not put any pods on the master node, because it is “tainted.” But we want to test cross-node container communication, so we need to deploy some pods on the master, as well as on the worker. The taint can be removed using the following command.
 
+FROM THE MASTER NODE:
 root@k8s-master:/etc# kubectl taint nodes k8s-master node-role.kubernetes.io/master-
 node/k8s-master untainted
 
 Now the scheduler will put pods on the master node.
 ```
+
+16. Create a test deployment to test the CNI plugin
+```
+From the master:
+kubectl apply -f https://raw.githubusercontent.com/s-matyukevich/bash-cni-plugin/master/01_gcp/test-deployment.yml
+
+```
+
